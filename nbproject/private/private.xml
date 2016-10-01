@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-private xmlns="http://www.netbeans.org/ns/project-private/1">
+    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+        <group name="powerDB">
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/system/SysInfo.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/stream/OIS.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/db/Database.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/db/DBManager.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/model/Table.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/model/ForeignKey.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/stream/Writer.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/model/Column.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/db/TableManager.java</file>
+            <file>file:/home/martin/Dropbox/Java/Proyectos/NetBeansProjects/powerDB2/src/org/martin/powerdb/stream/OOS.java</file>
+        </group>
+    </open-files>
+</project-private>
