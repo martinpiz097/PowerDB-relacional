@@ -34,13 +34,13 @@ public final class TableManager implements Serializable{
     
     // Usados para gestionar como objeto los datos de la tabla(nombre, columnas, clase)
     // Ver más adelante una posible migracion a texto.
-    private OOS outputStream;
-    private OIS inputStream;
+    private transient OOS outputStream;
+    private transient OIS inputStream;
 
     // Usados para los gestionar registros como texto.
-    private Writer dataWriter;
-    private Reader dataReader;
-    private List<Object[]> records;
+    private transient Writer dataWriter;
+    private transient Reader dataReader;
+    private transient List<Object[]> records;
     
     public TableManager(String relatedDb, String tableName) {
         try {
@@ -58,7 +58,7 @@ public final class TableManager implements Serializable{
             if(!tableRecordsFile.exists())
                 tableRecordsFile.createNewFile();
                 
-            records = getAllRecords();
+            records = getDeserializedRecords();
         } catch (IOException ex) {
             Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -192,6 +192,7 @@ public final class TableManager implements Serializable{
     }
     
     public void addRecord(Object[] record) throws IOException{
+        System.out.println(Arrays.toString(record));
         records.add(record);
         verifyWriter();
         dataWriter.writeLineAndFlush(Arrays.toString(record));
@@ -209,22 +210,27 @@ public final class TableManager implements Serializable{
         return null;
     }
     
+    private List<Object[]> getDeserializedRecords(){
+        List<Object[]> listRecords = new LinkedList<>();
+        try {
+            String line;
+            verifyReader();
+            while ((line = dataReader.readLine()) != null)
+                listRecords.add(getTransformedObject(line));
+            
+            closeReader();
+        } catch (IOException ex) {
+            closeReader();
+        } finally {
+            return listRecords;
+        }
+    }
+    
     public List<Object[]> getAllRecords(){
         if (records != null)
             return records;
         else{
-            List<Object[]> listRecords = new LinkedList<>();
-            try {
-                String line;
-                verifyReader();
-                while ((line = dataReader.readLine()) != null) 
-                    listRecords.add(getTransformedObject(line));
-                closeReader();
-            } catch (IOException ex) {
-                closeReader();
-            }finally{
-                return listRecords;
-            }
+            return getDeserializedRecords();
         }
     }
 

@@ -38,6 +38,7 @@ public class DBManager implements Serializable{
             readedTable = (Table) inputStream.readObject();
             inputStream.close();
             inputStream = null;
+            readedTable.instanceManager();
             return readedTable;
         } catch (IOException | ClassNotFoundException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);

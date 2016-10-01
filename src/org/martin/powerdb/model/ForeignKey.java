@@ -5,16 +5,18 @@
  */
 package org.martin.powerdb.model;
 
+import java.io.Serializable;
+
 /**
  *
  * @author martin
  */
-public class ForeignKey<T> extends Column<T>{
+public class ForeignKey<T> extends Column<T> implements Serializable{
     // Tabla relacionada con la foreign key
     private final Table relatedTable;
 
-    public ForeignKey(Table relatedTable, Class<T> dataClass, String name, boolean isAutoIncrement, boolean isEditable) {
-        super(dataClass, name, isAutoIncrement, true, isEditable);
+    public ForeignKey(Table relatedTable, Class<T> dataClass, String name) {
+        super(dataClass, name, false);
         this.relatedTable = relatedTable;
     }
 

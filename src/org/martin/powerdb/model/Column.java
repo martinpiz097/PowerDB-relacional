@@ -5,31 +5,34 @@
  */
 package org.martin.powerdb.model;
 
+import java.io.Serializable;
+
 /**
  *
  * @author martin
  * @param <T>
  */
-public class Column<T> {
+public class Column<T> implements Serializable{
     private final Class<T> dataClass;
     private String name;
     private boolean isAutoIncrement;
     private boolean isPK;
-    private boolean isFK;
+    //private boolean isFK;
     private boolean isEditable;
 
-    public Column(Class<T> dataClass, String name, boolean isAutoIncrement, boolean isPK) {
+    public Column(Class<T> dataClass, String name, boolean isPK, 
+            boolean isAutoIncrement) {
         this.dataClass = dataClass;
         this.name = name;
         this.isAutoIncrement = isAutoIncrement;
         this.isPK = isPK;
+        this.isEditable = false;
     }
     
-    public Column(Class<T> dataClass, String name, boolean isAutoIncrement, boolean isFK, boolean isEditable) {
+    public Column(Class<T> dataClass, String name, boolean isEditable) {
         this.dataClass = dataClass;
         this.name = name;
-        this.isAutoIncrement = isAutoIncrement;
-        this.isFK = isFK;
+        this.isAutoIncrement = false;
         this.isEditable = isEditable;
     }
 
@@ -58,17 +61,13 @@ public class Column<T> {
         return isPK;
     }
 
-    public boolean isFK() {
-        return isFK;
-    }
-
     public boolean isEditable() {
         return isEditable;
     }
 
     @Override
     public String toString() {
-        return "["+dataClass.getName()+"-"+name+"-"+isAutoIncrement+"-"+isPK+"-"+isFK+"-"+isEditable+"]";
+        return "["+dataClass.getName()+"-"+name+"-"+isAutoIncrement+"-"+isPK+"-"+isEditable+"]";
     }
     
 }

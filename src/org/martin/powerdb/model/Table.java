@@ -20,19 +20,28 @@ import org.martin.powerdb.db.TableManager;
  */
 public final class Table implements Serializable, TableModel{
     private final String relatedDb;
-    private final String name;
+    private String name;
     private final Column[] columns;
     //private final LinkedList<Object[]> records;
-    private final TableManager tableManager;
+    private transient TableManager tableManager;
     
     public Table(String relatedDb, String name, Column[] columns) {
         this.relatedDb = relatedDb;
         this.name = name;
         this.columns = columns;
-        this.tableManager = new TableManager(relatedDb, name);
+        instanceManager();
         updateTable();
     }
 
+    public void instanceManager(){
+        this.tableManager = new TableManager(relatedDb, name);
+    }
+    
+    public void setName(String newName){
+        this.name = newName;
+        updateTable();
+    }
+    
     public List<Object[]> getRecords() {
         return tableManager.getRecords();
     }
@@ -53,7 +62,7 @@ public final class Table implements Serializable, TableModel{
         tableManager.deleteAll();
     }
     
-    public void addRecord(Object[] record){
+    public void addRecord(Object... record){
         try {
             tableManager.addRecord(record);
         } catch (IOException ex) {
@@ -94,6 +103,11 @@ public final class Table implements Serializable, TableModel{
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         tableManager.setRecord(aValue, rowIndex, columnIndex);
+    }
+
+    @Override
+    public String toString() {
+        return "Table{" + "relatedDb=" + relatedDb + ", name=" + name + ", columns=" + columns + ", tableManager=" + tableManager + '}';
     }
 
 }
