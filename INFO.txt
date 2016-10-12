@@ -1,0 +1,3 @@
+INFO
+
+Cantidad de elementos por segundo que añade: 130.000

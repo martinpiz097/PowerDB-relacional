@@ -6,9 +6,6 @@
 package org.martin.powerdb.db;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -16,12 +13,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
+import org.martin.powerdb.model.Column;
 import org.martin.powerdb.model.Table;
-import org.martin.powerdb.stream.OIS;
-import org.martin.powerdb.stream.OOS;
 import org.martin.powerdb.stream.Reader;
 import org.martin.powerdb.stream.Writer;
 import org.martin.powerdb.system.SysInfo;
+import org.martin.powerdb.test.GeneralCounter;
 
 /**
  *
@@ -29,49 +27,65 @@ import org.martin.powerdb.system.SysInfo;
  */
 public final class TableManager implements Serializable{
     private File tableDir;
-    private File tableRecordsFile;
-    private File serializedTableFile;
+    private File recordsFile;
     
     // Usados para gestionar como objeto los datos de la tabla(nombre, columnas, clase)
     // Ver más adelante una posible migracion a texto.
-    private transient OOS outputStream;
-    private transient OIS inputStream;
-
+    private transient TableProperties tblProperties;
+    
     // Usados para los gestionar registros como texto.
     private transient Writer dataWriter;
     private transient Reader dataReader;
-    private transient List<Object[]> records;
     
-    public TableManager(String relatedDb, String tableName) {
+    private transient Column[] tblColumns;
+    private transient List<Object[]> records;
+    //private transient ExecutorService threadsExecutor;
+    private transient boolean autoSave;
+    
+    private class SAVE_TYPE{
+        static final boolean APPEND = true;
+        static final boolean NOT_APPEND = false;
+    }
+    
+    public TableManager(String relatedDb, String tableName, Column[] tblColumns) {
         try {
             tableDir = new File(SysInfo.ROOT_DIR.getCanonicalPath()+"/"+relatedDb, tableName);
             
             if (!tableDir.exists())
                 tableDir.mkdir();
-            
-            serializedTableFile = new File(tableDir, tableName+".db");
-            if(!serializedTableFile.exists())
-                serializedTableFile.createNewFile();
 
-            tableRecordsFile = new File(tableDir, "records.db");
+            tblProperties = new TableProperties(tableDir, tableName);
+            this.tblColumns = tblColumns;
             
-            if(!tableRecordsFile.exists())
-                tableRecordsFile.createNewFile();
-                
+            recordsFile = new File(tableDir, "records.db");
+            
+            if(!recordsFile.exists())
+                recordsFile.createNewFile();
+
+            openConnection();
             records = getDeserializedRecords();
+            //threadsExecutor = Executors.newFixedThreadPool(1000);
+            verifyWriter();
+            enableAutoSave();
         } catch (IOException ex) {
             Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-    private boolean isOutputStreamClosed(){
-        return outputStream == null;
+    private void setProperties(File file, boolean bool){
+        file.setReadable(bool);
+        file.setReadable(bool);
+        file = null;
     }
     
-    private boolean isInputStreamClosed(){
-        return inputStream == null;
+    private void lockRecordsFile(){
+        setProperties(recordsFile, false);
     }
     
+    private void unlockRecordsFile(){
+        setProperties(recordsFile, true);
+    }
+
     private boolean isWriterClosed(){
         return dataWriter == null;
     }
@@ -80,60 +94,20 @@ public final class TableManager implements Serializable{
         return dataReader == null;
     }
     
-    private void verifyOutputStream() {
-        if (isOutputStreamClosed()) 
-            try {
-                outputStream = new OOS(new FileOutputStream(serializedTableFile));
-        } catch (IOException ex) {
-            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    private void verifyInputStream() {
-        if (isInputStreamClosed()) 
-            try {
-                inputStream = new OIS(new FileInputStream(serializedTableFile));
-        } catch (IOException ex) {
-            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
     private void verifyWriter() {
         if (isWriterClosed()) 
             try {
-                dataWriter = new Writer(tableRecordsFile);
+                dataWriter = new Writer(recordsFile);
         } catch (IOException ex) {
             Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
     private void verifyReader() {
-        if (isReaderClosed()) 
-            try {
-                dataReader = new Reader(tableRecordsFile);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        if (isReaderClosed())
+            dataReader = new Reader(recordsFile);
     }
 
-    private void closeOutputStream(){
-        try {
-            outputStream.close();
-            outputStream = null;
-        } catch (IOException ex) {
-            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    private void closeInputStream(){
-        try {
-            inputStream.close();
-            inputStream = null;
-        } catch (IOException ex) {
-            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
     private void closeWriter(){
         try {
             dataWriter.close();
@@ -144,12 +118,7 @@ public final class TableManager implements Serializable{
     }
     
     private void closeReader(){
-        try {
-            dataReader.close();
-            dataReader = null;
-        } catch (IOException ex) {
-            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        dataReader = null;
     }
     
     private Object[] getTransformedObject(String str){
@@ -160,43 +129,69 @@ public final class TableManager implements Serializable{
         return array;
     }
     
-    public Table getTable() throws IOException, ClassNotFoundException{
-        verifyInputStream();
-        Table t = (Table) inputStream.readObject();
-        closeInputStream();
-        return t;
+//    public Table getTable() throws IOException, ClassNotFoundException{
+//        return tblProperties.getTable();
+//    }
+    
+    public boolean hasRecords(){
+        return !records.isEmpty();
     }
     
     public void storeTable(Table t) throws IOException{
-        verifyOutputStream();
-        outputStream.writeObject(t);
-        closeOutputStream();
+        tblProperties.setRelatedDB(t.getRelatedDB());
+        tblProperties.setName(t.getName());
+        tblProperties.setColumns(t.getColumns());
     }
 
-    private void clearFile() throws IOException{
-        dataWriter.clearFile();
+    private void clearFile() throws IOException {
+        recordsFile.delete();
+        recordsFile.createNewFile();
+    }
+
+    private void clearAndReboot() throws IOException{
+        clearFile();
+        closeWriter();
+        verifyWriter();
     }
     
     private void updateRecords(){
         try {
-            verifyWriter();
-            clearFile();
+            clearAndReboot();
             for (Object[] r : records)
-                dataWriter.writeLine(Arrays.toString(r));
+                dataWriter.writeRecord(Arrays.toString(r));
             
             dataWriter.flush();
-            closeWriter();
+        } catch (IOException ex) {
+            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void openConnection(){
+        unlockRecordsFile();
+    }
+    
+    public void shutdown(){
+        lockRecordsFile();
+    }
+    
+    public void saveChanges(){
+        updateRecords();
+    }
+    
+    public void flushRecordsFile() {
+        try {
+            dataWriter.flush();
         } catch (IOException ex) {
             Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
     public void addRecord(Object[] record) throws IOException{
-        System.out.println(Arrays.toString(record));
         records.add(record);
-        verifyWriter();
-        dataWriter.writeLineAndFlush(Arrays.toString(record));
-        closeWriter();
+        dataWriter.writeRecord(Arrays.toString(record));
+        if(autoSave)
+            flushRecordsFile();
+        
     }
     
     public Object[] getRecordAt(int index){
@@ -204,20 +199,46 @@ public final class TableManager implements Serializable{
     }
     
     public Object[] getRecord(int columnIndex, Object valueToFind){
+        Object[] r;
+        long ti = System.currentTimeMillis();
+        for (Object[] record : records){
+//            if (valueToFind instanceof Number) {
+//                if (Long.parseLong(record[columnIndex].toString()) == ((Number) valueToFind).longValue())
+//                    return record;
+//            }
+//            else
+            
+            if (record[columnIndex] == valueToFind)
+                r = record;
+        }
+        GeneralCounter.foreachCount++;
+        GeneralCounter.milisecForeach+=(System.currentTimeMillis()-ti);
+        
+        ti = System.currentTimeMillis();
+        r = records.stream().filter(rec -> rec[columnIndex].equals(valueToFind))
+                .findAny().orElse(null);
+        GeneralCounter.milisecFilter+=(System.currentTimeMillis()-ti);
+        GeneralCounter.filterCount++;
+        return r;
+    }
+    
+    public List<Object[]> getRecordsBy(int columnIndex, Object valueToFind){
+        List<Object[]> listResults = new LinkedList<>();
+        
         for (Object[] record : records) 
             if (record[columnIndex].equals(valueToFind))
-                return record;
-        return null;
+                listResults.add(record);
+        return listResults;
     }
     
     private List<Object[]> getDeserializedRecords(){
         List<Object[]> listRecords = new LinkedList<>();
         try {
-            String line;
             verifyReader();
-            while ((line = dataReader.readLine()) != null)
+            for (String line : dataReader.readLines()){
                 listRecords.add(getTransformedObject(line));
-            
+                
+            }
             closeReader();
         } catch (IOException ex) {
             closeReader();
@@ -226,28 +247,39 @@ public final class TableManager implements Serializable{
         }
     }
     
-    public List<Object[]> getAllRecords(){
-        if (records != null)
-            return records;
-        else{
-            return getDeserializedRecords();
-        }
-    }
+//    public List<Object[]> getAllRecords(){
+//        if (records != null)
+//            return records;
+//        else
+//            return getDeserializedRecords();
+//    }
 
+    public int getRecordsCount(){
+        return records.size();
+    }
+    
     public List<Object[]> getRecords() {
         return records;
     }
     
-    public void setRecord(int index, Object[] record) {
+    public void setRecord(int index, Object... record) {
         records.set(index, record);
-        updateRecords();
+        if(autoSave) updateRecords();
+    }
+    
+    public void enableAutoSave(){
+        autoSave = true;
+    }
+    
+    public void disableAutoSave(){
+        autoSave = false;
     }
     
     public void setRecord(Object object, int row, int column){
         Object[] get = records.get(row);
         get[column] = object;
         records.set(row, get);
-        updateRecords();
+        if(autoSave) updateRecords();
         get = null;
     }
     
@@ -262,7 +294,7 @@ public final class TableManager implements Serializable{
             // rápido que escribir en el archivo por cada línea.
             
             for (Object[] r : records)
-                dataWriter.writeLine(Arrays.toString(r));
+                dataWriter.writeRecord(Arrays.toString(r));
             
             dataWriter.flush();
             closeWriter();
@@ -271,9 +303,34 @@ public final class TableManager implements Serializable{
         }
     }
     
+    public void deleteRecord(Object[] record){
+        try {
+            records.remove(record);
+            verifyWriter();
+            clearFile();
+            for (Object[] r : records)
+                dataWriter.writeRecord(Arrays.toString(r));
+                
+            dataWriter.flush();
+            // Ver ese tema para editar directamente el archivo con los registros.
+            //RandomAccessFile raf = new RandomAccessFile(tableDir, "rw");
+        } catch (IOException ex) {
+            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    public void deleteRecords(){
+        try {
+            clearFile();
+            records.clear();
+        } catch (IOException ex) {
+            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
     public void deleteAll(){
-        serializedTableFile.delete();
-        tableRecordsFile.delete();
+        tblProperties.deleteLogFile();
+        recordsFile.delete();
         tableDir.delete();
     }
 }

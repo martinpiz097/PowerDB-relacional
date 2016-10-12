@@ -5,45 +5,30 @@
  */
 package org.martin.powerdb.stream;
 
-import java.io.BufferedReader;
+import com.sun.nio.zipfs.ZipPath;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.stream.Stream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  *
  * @author martin
  */
-public class Reader extends BufferedReader{
-    private final File fileToRead;
+public class Reader {
+    private final Path filePath;
+    //private final File fileToRead;
     
-    public Reader(File fileToRead) throws FileNotFoundException{
-        super(new FileReader(fileToRead));
-        this.fileToRead = fileToRead;
+    public Reader(File fileToRead) {
+        this.filePath = fileToRead.toPath();
     }
 
-    // Por ahora seran los métodos normales pero despues la idea es ocupar la deserializacion
-    // a la hora de rescatar los datos.
-    @Override
-    public Stream<String> lines() {
-        return super.lines(); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void reset() throws IOException {
-        super.reset(); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public String readLine() throws IOException {
-        return super.readLine(); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public int read() throws IOException {
-        return super.read(); //To change body of generated methods, choose Tools | Templates.
+    public List<String> readLines() throws IOException{
+        String fileLine = Files.readAllLines(filePath).get(0);
+        fileLine = fileLine.substring(0, fileLine.length()-1);
+        return Arrays.asList(fileLine.split("~"));
     }
     
 }

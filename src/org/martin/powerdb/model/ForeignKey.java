@@ -26,7 +26,9 @@ public class ForeignKey<T> extends Column<T> implements Serializable{
 
     @Override
     public String toString() {
-        return super.toString()+" ["+getRelatedTable().toString()+"]";
+        return "["+super.getDataClass().getName()+"~"+super.getName()+"~"+
+                super.isAutoIncrement()+"~"+super.isPK()+"~"+super.isEditable()+
+                "~"+getRelatedTable().getName()+"]";
     }
     
 }

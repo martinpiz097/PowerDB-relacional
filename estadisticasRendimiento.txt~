@@ -1,0 +1,31 @@
+COMPARACION DE DOS FORMAS DISTINTAS DE GUARDAR LAS TABLAS
+CALCULANDO TIEMPOS DE ALMACENAMIENTO EN MILISEGUNDOS
+
+guardando objeto table;
+	67
+	46
+	60
+	51
+	44
+	49
+	50
+	54
+	50
+	55
+	--
+	52,6
+guardando el xml:
+	70
+	76
+	72
+	74
+	87
+	70
+	82
+	97
+	71
+	76
+	--
+	77,5
+--------------------------------------------------------
+tiempo sin instanciar y cerrar streams al añadir: 252,9 Promedio.

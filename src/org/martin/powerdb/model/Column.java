@@ -36,13 +36,21 @@ public class Column<T> implements Serializable{
         this.isEditable = isEditable;
     }
 
+    public Column(Class<T> dataClass, String name, boolean isAutoIncrement, boolean isPK, boolean isEditable) {
+        this.dataClass = dataClass;
+        this.name = name;
+        this.isAutoIncrement = isAutoIncrement;
+        this.isPK = isPK;
+        this.isEditable = isEditable;
+    }
+
     // Retorna si la clase de sus datos es un número o no
 //    private boolean isDataClassNumber(){
 //        
 //    }
     
     public String getColumnDataType(){
-        return dataClass.getTypeName();
+        return dataClass.getName();
     }
 
     public Class<T> getDataClass() {
@@ -67,7 +75,8 @@ public class Column<T> implements Serializable{
 
     @Override
     public String toString() {
-        return "["+dataClass.getName()+"-"+name+"-"+isAutoIncrement+"-"+isPK+"-"+isEditable+"]";
+        return "["+dataClass.getName()+"~"+name+"~"+isAutoIncrement+"~"+isPK+
+                "~"+isEditable+"]";
     }
     
 }
