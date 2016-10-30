@@ -1,0 +1,4 @@
+0.5 --> Se integro DataReader y DataWriter, clases para trabajar directamente con los archivos en la lectura y guardado de los registros, se encuentran dentro del TableManager. Se modifico el tipo de guardado, ahora es por texto porque es más rápido.
+	--> Se agregaron métodos de consultas en la clase Database.
+	--> se agregó clase TableCreator que permite de manera más intuitiva crear una tabla dándole su estructura mediante la orientación a objetos.
+	--> se agregó la opción autoincrement ya funcional, pero se debe verificar el caso de los textos, ya que se debe lanzar una excepcion si se intenta crear un autoincrement para un String.

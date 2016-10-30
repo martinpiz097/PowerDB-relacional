@@ -9,22 +9,22 @@ package org.martin.powerdb.db.exception;
  *
  * @author martin
  */
-public class SQLSyntaxExcepcion extends Exception {
+public class NullForeignKeyException extends Exception {
 
     /**
-     * Creates a new instance of <code>SQLSyntaxExcepcion</code> without detail
-     * message.
+     * Creates a new instance of <code>NullForeignKeyException</code> without
+     * detail message.
      */
-    public SQLSyntaxExcepcion() {
+    public NullForeignKeyException() {
     }
 
     /**
-     * Constructs an instance of <code>SQLSyntaxExcepcion</code> with the
+     * Constructs an instance of <code>NullForeignKeyException</code> with the
      * specified detail message.
      *
      * @param msg the detail message.
      */
-    public SQLSyntaxExcepcion(String msg) {
+    public NullForeignKeyException(String msg) {
         super(msg);
     }
 }

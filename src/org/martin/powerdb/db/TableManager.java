@@ -10,16 +10,15 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.List;  
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
+import org.martin.electroList.structure.ElectroList;
 import org.martin.powerdb.model.Column;
 import org.martin.powerdb.model.Table;
-import org.martin.powerdb.stream.Reader;
-import org.martin.powerdb.stream.Writer;
+import org.martin.powerdb.stream.DataReader;
+import org.martin.powerdb.stream.DataWriter;
 import org.martin.powerdb.system.SysInfo;
-import org.martin.powerdb.test.GeneralCounter;
 
 /**
  *
@@ -34,11 +33,12 @@ public final class TableManager implements Serializable{
     private transient TableProperties tblProperties;
     
     // Usados para los gestionar registros como texto.
-    private transient Writer dataWriter;
-    private transient Reader dataReader;
+    private transient DataWriter dataWriter;
+    private transient DataReader dataReader;
     
     private transient Column[] tblColumns;
     private transient List<Object[]> records;
+
     //private transient ExecutorService threadsExecutor;
     private transient boolean autoSave;
     
@@ -97,7 +97,7 @@ public final class TableManager implements Serializable{
     private void verifyWriter() {
         if (isWriterClosed()) 
             try {
-                dataWriter = new Writer(recordsFile);
+                dataWriter = new DataWriter(recordsFile);
         } catch (IOException ex) {
             Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -105,7 +105,11 @@ public final class TableManager implements Serializable{
     
     private void verifyReader() {
         if (isReaderClosed())
-            dataReader = new Reader(recordsFile);
+            try {
+                dataReader = new DataReader(recordsFile);
+        } catch (IOException ex) {
+            Logger.getLogger(TableManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     private void closeWriter(){
@@ -124,7 +128,13 @@ public final class TableManager implements Serializable{
     private Object[] getTransformedObject(String str){
         String[] split = str.substring(1, str.length()-1).split(", ");
         Object[] array = new Object[split.length];
-        System.arraycopy(split, 0, array, 0, split.length);
+
+        int columnLen = array.length;
+
+        // Cada campo de cada registro tendra el tipo de dato que le corresponde
+        for (int i = 0; i < columnLen; i++){ 
+           array[i] = tblColumns[i].castField(split[i]);
+        }
         split = null;
         return array;
     }
@@ -200,7 +210,6 @@ public final class TableManager implements Serializable{
     
     public Object[] getRecord(int columnIndex, Object valueToFind){
         Object[] r;
-        long ti = System.currentTimeMillis();
         for (Object[] record : records){
 //            if (valueToFind instanceof Number) {
 //                if (Long.parseLong(record[columnIndex].toString()) == ((Number) valueToFind).longValue())
@@ -209,21 +218,21 @@ public final class TableManager implements Serializable{
 //            else
             
             if (record[columnIndex] == valueToFind)
-                r = record;
+                return record;
         }
-        GeneralCounter.foreachCount++;
-        GeneralCounter.milisecForeach+=(System.currentTimeMillis()-ti);
-        
-        ti = System.currentTimeMillis();
-        r = records.stream().filter(rec -> rec[columnIndex].equals(valueToFind))
-                .findAny().orElse(null);
-        GeneralCounter.milisecFilter+=(System.currentTimeMillis()-ti);
-        GeneralCounter.filterCount++;
-        return r;
+//        GeneralCounter.foreachCount++;
+//        GeneralCounter.milisecForeach+=(System.currentTimeMillis()-ti);
+//        
+//        ti = System.currentTimeMillis();
+//        r = records.stream().filter(rec -> rec[columnIndex].equals(valueToFind))
+//                .findAny().orElse(null);
+//        GeneralCounter.milisecFilter+=(System.currentTimeMillis()-ti);
+//        GeneralCounter.filterCount++;
+        return null;
     }
     
     public List<Object[]> getRecordsBy(int columnIndex, Object valueToFind){
-        List<Object[]> listResults = new LinkedList<>();
+        List<Object[]> listResults = new ElectroList<>();
         
         for (Object[] record : records) 
             if (record[columnIndex].equals(valueToFind))
@@ -231,13 +240,21 @@ public final class TableManager implements Serializable{
         return listResults;
     }
     
+//    public List<Object[]> getRecordsBy(int columnIndex, Predicate predicate){
+//        List<Object[]> listResults = new ElectroList<>();
+//        
+//        for (Object[] record : records) 
+//            if (predicate.test(record[columnIndex]))
+//                listResults.add(record);
+//        return listResults;
+//    }
+    
     private List<Object[]> getDeserializedRecords(){
-        List<Object[]> listRecords = new LinkedList<>();
+        List<Object[]> listRecords = new ElectroList<>();
         try {
             verifyReader();
             for (String line : dataReader.readLines()){
                 listRecords.add(getTransformedObject(line));
-                
             }
             closeReader();
         } catch (IOException ex) {

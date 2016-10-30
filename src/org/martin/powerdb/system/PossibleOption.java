@@ -7,29 +7,34 @@ package org.martin.powerdb.system;
 
 import java.util.Arrays;
 import java.util.LinkedList;
+import org.martin.electroList.structure.ElectroList;
 
 /**
  *
  * @author martin
  */
 public class PossibleOption {
-    private final LinkedList<String> similarOptions;
-
+    private final ElectroList<String> similarOptions;
+    
     public PossibleOption(String options) {
-        this.similarOptions = new LinkedList<>();
+        this.similarOptions = new ElectroList<>("similarOptions");
         similarOptions.addAll(Arrays.asList(options.split("/")));
     }
 
     public boolean isEquals(PossibleOption po){
-        for (int i = 0; i < similarOptions.size(); i++)
+        int listSize = similarOptions.size();
+        for (int i = 0; i < listSize; i++)
             if (!getOption(i).equals(po.getOption(i)))
                 return false;
         return true;
     }
     
     public boolean isPossibleOption(PossibleOption po){
-        return similarOptions.stream()
-                .anyMatch(op -> op.equals(po.getInsertedOption()));
+        return similarOptions.anyMatch(op -> op.equals(po.getInsertedOption()));
+    }
+    
+    public boolean isPossibleOption(String option){
+        return similarOptions.anyMatch(op->op.equals(option));
     }
     
     public String getInsertedOption(){

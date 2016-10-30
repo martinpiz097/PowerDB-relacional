@@ -9,17 +9,17 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.martin.powerdb.stream.Writer;
+import org.martin.powerdb.stream.DataWriter;
 
 /**
  *
  * @author martin
  */
 public class TInsert implements Runnable {
-    private Writer writer;
+    private DataWriter writer;
     private Object[] record;
 
-    public TInsert(Writer writer, Object[] record) {
+    public TInsert(DataWriter writer, Object[] record) {
         this.writer = writer;
         this.record = record;
     }

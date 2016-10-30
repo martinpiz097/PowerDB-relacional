@@ -25,6 +25,6 @@ public class UnknownColumnException extends Exception {
      * @param columnName the detail message.
      */
     public UnknownColumnException(String columnName, String tblName) {
-        super("La columna "+columnName+"en la tabla "+tblName+" no existe");
+        super("La columna "+columnName+" en la tabla "+tblName+" no existe");
     }
 }

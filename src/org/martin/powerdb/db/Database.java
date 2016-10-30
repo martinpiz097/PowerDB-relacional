@@ -5,16 +5,22 @@
  */
 package org.martin.powerdb.db;
 
+import org.martin.powerdb.db.exception.FieldsCountOutOfLimitException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.function.Predicate;
+import org.martin.electroList.structure.ElectroList;
 import org.martin.powerdb.db.exception.NullPrimaryKeyException;
-import org.martin.powerdb.db.exception.SQLSyntaxExcepcion;
 import org.martin.powerdb.db.exception.TableNotExistsException;
+import org.martin.powerdb.db.exception.UnknownColumnException;
 import org.martin.powerdb.model.Column;
-import org.martin.powerdb.model.DuplicatedPrimaryKeyException;
-import org.martin.powerdb.model.IncompatibleObjectTypeException;
-import org.martin.powerdb.model.NullForeignKeyException;
+import org.martin.powerdb.db.exception.DuplicatedPrimaryKeyException;
+import org.martin.powerdb.db.exception.IncompatibleObjectTypeException;
+import org.martin.powerdb.db.exception.NullForeignKeyException;
+import org.martin.powerdb.db.exception.SQLSyntaxErrorException;
 import org.martin.powerdb.model.Table;
 
 /**
@@ -24,7 +30,7 @@ import org.martin.powerdb.model.Table;
 public class Database implements Serializable{
     // Ver la opcion de crear triggers como listeners
     private final String name;
-    private LinkedList<Table> tables;
+    private ElectroList<Table> tables;
     private final DBManager manager;
 
     public Database(String name) {
@@ -37,16 +43,17 @@ public class Database implements Serializable{
         return !tables.isEmpty();
     }
     
-    public boolean hasTable(String name){
-        boolean hasTable = false;
-        
-        for (Table table : tables)
-            if (table.getName().equals(name)) {
-                hasTable = true;
-                break;
-            }
-        
-        return hasTable;
+    public boolean hasTable(String tblName){
+        return tables.anyMatch(tbl->tbl.getName().equals(tblName));
+//        boolean hasTable = false;
+//        
+//        for (Table table : tables)
+//            if (table.getName().equals(name)) {
+//                hasTable = true;
+//                break;
+//            }
+//        
+//        return hasTable;
     }
     
     private void loadDB(){
@@ -60,7 +67,7 @@ public class Database implements Serializable{
         return tbl;
     }
 
-    private void execQuery(String query) throws SQLSyntaxExcepcion{
+    private void execQuery(String query) throws SQLSyntaxErrorException {
         String[] orders = query.split(" ");
         String[] fields;
         String strFields;
@@ -99,7 +106,7 @@ public class Database implements Serializable{
                 }
             }
             else
-                throw new SQLSyntaxExcepcion("Consulta create con errores de sintaxis");
+                throw new SQLSyntaxErrorException("Consulta create con errores de sintaxis");
         }
         else if (orders[0].equals("insert")) {
             
@@ -124,7 +131,31 @@ public class Database implements Serializable{
     public void addTable(Table table){
         tables.add(table);
     }
-
+    
+    public ResultsPointer getResultsPointer(String tblName) throws TableNotExistsException{
+        return new ResultsPointer(verifyTable(tblName));
+    }
+    
+    public ResultsPointer getResultsPointer(Table tbl){
+        return new ResultsPointer(tbl);
+    }
+    
+    public List<Object[]> select(String tblName, String... wheres) throws TableNotExistsException, 
+            UnknownColumnException{
+        // Corregir busquedas con mas de un where.
+        Table tbl = verifyTable(tblName);
+        List<Object[]> listResults = new LinkedList<>();
+        
+        String[] splitWhere;
+        for (String where : wheres) {
+            splitWhere = where.split("=");
+            listResults.addAll(tbl.getRecordsBy(splitWhere[0], splitWhere[1]));
+        }
+        tbl = null;
+        splitWhere = null;
+        return listResults;
+    }
+    
     public Object[] selectFirst(String tblName) throws TableNotExistsException{
         Table tbl = verifyTable(tblName);
         return tbl.getFirst();
@@ -135,11 +166,16 @@ public class Database implements Serializable{
         return tbl.getFirst();
     }
     
+    public List<Object[]> selectAll(String tblName) throws TableNotExistsException{
+        Table tbl = verifyTable(tblName);
+        return tbl.getRecords();
+    }
+    
     public void insert(String tblName, Object... record) throws TableNotExistsException, FieldsCountOutOfLimitException, IncompatibleObjectTypeException, IOException, NullForeignKeyException, NullPrimaryKeyException, DuplicatedPrimaryKeyException{
         Table tbl = verifyTable(tblName);
         
-        if (record == null)
-            throw new NullPointerException("Los campos a agregar son nulos");
+        if (record == null || record.length == 0)
+            throw new NullPointerException("Los campos a agregar no son válidos");
         if (record.length > tbl.getColumnCount())
             throw new FieldsCountOutOfLimitException(record.length+"");
         
@@ -162,13 +198,16 @@ public class Database implements Serializable{
     }
    
     public Table getTable(String tableName){
-        if(tables.isEmpty()) return null;
+        if(!hasTables()) return null;
         
-        for (Table table : tables) 
-            if (table.getName().equals(tableName))
-                return table;
+        return tables.findFirst(tbl->tbl.getName().equals(tableName));
+        //return tables.filter(tbl->tbl.getName().equals(tableName)).findFirst().orElse(null);
         
-        return null;
+//        for (Table table : tables) 
+//            if (table.getName().equals(tableName))
+//                return table;
+//        
+//        return null;
     }
     
     public Table getLastCreatedTable(){
@@ -176,7 +215,7 @@ public class Database implements Serializable{
         return tables.getLast();
     }
 
-    public LinkedList<Table> getTables() {
+    public ElectroList<Table> getTables() {
         return tables;
     }
     

@@ -8,10 +8,12 @@ comandos sql
 6.- Drop
 7.- Call
 8.- Create
+9.- Describe ó desc
 
 Comandos y opciones
 
 1.-	SELECT [COLUMNAS SEPARADAS POR COMA CON O SIN ESPACIOS(*)/nombreFuncion+(parametros...) ] en caso de ser la primera alternativa --> FROM [TABLA(S)] WHERE CONDICION ORDER BY asc/desc
 
 2.-	INSERT into nombreTabla values(campos... con comillas simple dependiendo del tipo de dato) o (nombresColumnas) values(campos... con comillas simple dependiendo del tipo de dato)
+
 

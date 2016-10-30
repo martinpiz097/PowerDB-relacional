@@ -5,6 +5,9 @@
  */
 package org.martin.powerdb.model;
 
+import org.martin.powerdb.db.exception.DuplicatedPrimaryKeyException;
+import org.martin.powerdb.db.exception.NullForeignKeyException;
+import org.martin.powerdb.db.exception.IncompatibleObjectTypeException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
@@ -13,12 +16,13 @@ import java.util.logging.Logger;
 import org.martin.powerdb.db.TableManager;
 import org.martin.powerdb.db.exception.NullPrimaryKeyException;
 import org.martin.powerdb.db.exception.UnknownColumnException;
+import org.martin.powerdb.model.interfaces.Readable;
 
 /**
  *
  * @author martin
  */
-public final class Table implements Serializable, TableModel{
+public final class Table implements Serializable, TableModel, Readable{
     private final String relatedDb;
     private String name;
     private final Column[] columns;
@@ -117,12 +121,16 @@ public final class Table implements Serializable, TableModel{
         return true;
     }
     
+    public void deleteAll(){
+        tableManager.deleteRecords();
+    }
+    
     public int getRecordsCount(){
         return tableManager.getRecordsCount();
     }
     
     public Object[] getFirst(){
-        if (hasRecords()) return null;
+        if (!hasRecords()) return null;
 
         return tableManager.getRecordAt(0);
     }
@@ -133,24 +141,131 @@ public final class Table implements Serializable, TableModel{
         return tableManager.getRecordAt(tableManager.getRecordsCount()-1);
     }
     
+    @Override
+    public Number getNumber(int row, int column){
+        try {
+            Object valueAt = getValueAt(row, column);
+            long num = Long.parseLong(valueAt.toString());
+            return num;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+    
+    @Override
+    public Long getLong(int row, int column){
+        Number num = getNumber(row, column);
+        return num == null ? null : num.longValue();
+    }
+    
+    @Override
+    public Integer getInt(int row, int column){
+        Number num = getNumber(row, column);
+        if(num == null) return null;
+         
+        if (num.longValue() > Integer.MAX_VALUE)
+            return Integer.MAX_VALUE;
+        else if (num.longValue() < Integer.MIN_VALUE)
+            return Integer.MIN_VALUE;
+        else
+            return num.intValue();
+    }
+    
+    @Override
+    public Short getShort(int row, int column){
+        Number num = getNumber(row, column);
+        if(num == null) return null;
+         
+        if (num.longValue() > Short.MAX_VALUE)
+            return Short.MAX_VALUE;
+        else if (num.longValue() < Short.MIN_VALUE)
+            return Short.MIN_VALUE;
+        else
+            return num.shortValue();
+    }
+    
+    @Override
+    public Byte getByte(int row, int column){
+        Number num = getNumber(row, column);
+        if(num == null) return null;
+         
+        if (num.longValue() > Byte.MAX_VALUE)
+            return Byte.MAX_VALUE;
+        else if (num.longValue() < Byte.MIN_VALUE)
+            return Byte.MIN_VALUE;
+        else
+            return num.byteValue();
+    }
+    
+    @Override
+    public Float getFloat(int row, int column){
+        Double aDouble = getDouble(row, column);
+        
+        if (aDouble == null) return null;
+        
+        if (aDouble > Float.MAX_VALUE)
+            return Float.MAX_VALUE;
+        else if (aDouble < Float.MIN_VALUE)
+            return Float.MIN_VALUE;
+        else
+            return aDouble.floatValue();
+    }
+    
+    @Override
+    public Double getDouble(int row, int column){
+        Number num = getNumber(row, column);
+        if(num == null) return null;
+        
+        return num.doubleValue();
+    }
+    
+    @Override
+    public String getString(int row, int column){
+        return getValueAt(row, column).toString();
+    }
+    
     public void addRecord(Object... record) throws IncompatibleObjectTypeException, IOException, 
             NullForeignKeyException, NullPrimaryKeyException, DuplicatedPrimaryKeyException{
-        byte counter = 0;
-        for (Object object : record) {
-            if (!object.getClass().getName().equals(columns[counter].getColumnDataType()))
-                throw new IncompatibleObjectTypeException();
-            if(record[counter] == null && (columns[counter].isPK() || columns[counter] instanceof ForeignKey)){
-                if(columns[counter].isPK())
-                    throw new NullPrimaryKeyException();
-                else
-                    throw new NullForeignKeyException();
+        //byte counter = 0;
+        
+        // Comprobar si el registro no tiene claves nulas, si los tipos de datos coinciden
+        // con la estructura de la tabla o si la cantidad de columnas es igual a la cantidad
+        // establecida en la tabla.
+        
+        
+        Column<?> col;
+        Object field;
+        int recordLen = record.length; 
+        long curData;
+
+        for (byte i = 0; i < recordLen; i++) {
+            // Considerar que se debe cambiar la condicion de auto incremento cuando
+            // el dato no es numerico.
+            field = record[i];
+            if (field == null) {
+                col = columns[i];
+                if (col.isAutoIncrement()) {
+                    if(hasRecords())
+                        curData = Long.parseLong(getLast()[i].toString())+1;
+                    
+                    else
+                        curData = 1;
+                    
+                    record[i] = curData;
+                    field = record[i];
+                }
+                else if (col.isPK() || col instanceof ForeignKey)
+                    if (col.isPK())
+                        throw new NullPrimaryKeyException();
+                    
+                    else
+                        throw new NullForeignKeyException();
             }
-            if (columns[counter].isPK() && isPkAlreadyUsed(object, counter))
-                throw new DuplicatedPrimaryKeyException(object.toString());
-            
-            counter++;
+            else if (!field.getClass().getName().equals(columns[i].getColumnDataType()))
+                    throw new IncompatibleObjectTypeException();
+            else if (columns[i].isPK() && isPkAlreadyUsed(field, i))
+                throw new DuplicatedPrimaryKeyException(field.toString());
         }
-        counter = 0;
         tableManager.addRecord(record);
     }
     
@@ -166,18 +281,39 @@ public final class Table implements Serializable, TableModel{
             throws UnknownColumnException{
         boolean columnExists = false;
         int colIndex = 0;
-        for (Column column : columns){
-            if (column.getName().equals(columnName)) {
+        int colLen = columns.length;
+        
+        for (int i = 0; i < colLen; i++) {
+            if (columns[i].getName().equals(columnName)) {
                 columnExists = true;
+                colIndex = i;
                 break;
             }
-            colIndex++;
         }
         if (!columnExists) 
             throw new UnknownColumnException(columnName, getName());
             
         return tableManager.getRecordsBy(colIndex, valueToFind);
     }
+    
+//    public List<Object[]> getRecordsBy(String columnName, Predicate predicate) 
+//            throws UnknownColumnException{
+//        boolean columnExists = false;
+//        int colIndex = 0;
+//        int colLen = columns.length;
+//        
+//        for (int i = 0; i < colLen; i++) {
+//            if (columns[i].getName().equals(columnName)) {
+//                columnExists = true;
+//                colIndex = i;
+//                break;
+//            }
+//        }
+//        if (!columnExists) 
+//            throw new UnknownColumnException(columnName, getName());
+//            
+//        return tableManager.getRecordsBy(colIndex, predicate);
+//    }
     
     @Override
     public String getName() {
@@ -220,7 +356,36 @@ public final class Table implements Serializable, TableModel{
 //    
     @Override
     public String toString() {
-        return "Table{" + "relatedDb=" + relatedDb + ", name=" + name + ", columns=" + columns + ", tableManager=" + tableManager + '}';
+        System.out.print('+');
+        for (int i = 0; i < getColumnCount(); i++) {
+            for (int j = 0; j < 10; j++) {
+                System.out.print('-');
+            }
+            System.out.print('+');
+        }
+        System.out.println("");
+        
+        int colNameLen;
+        System.out.print("|");
+        for (Column column : columns) {
+            colNameLen = column.getName().length();
+            System.out.print(column.getName());
+            for (int i = 0; i < 10-colNameLen; i++) {
+                System.out.print(' ');
+            }
+            System.out.print("|");
+        }
+        
+        System.out.println("");
+        System.out.print('+');
+        for (int i = 0; i < getColumnCount(); i++) {
+            for (int j = 0; j < 10; j++) {
+                System.out.print('-');
+            }
+            System.out.print('+');
+        }
+        System.out.println("");
+        return null;
     }
 
 }

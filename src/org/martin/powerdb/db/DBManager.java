@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.martin.electroList.structure.ElectroList;
 import org.martin.powerdb.model.Column;
 import org.martin.powerdb.model.ForeignKey;
 import org.martin.powerdb.model.Table;
@@ -86,7 +87,7 @@ public class DBManager implements Serializable{
         return null;
     }
     
-    private void addFoundTablesTo(LinkedList<Table> listTables){
+    private void addFoundTablesTo(ElectroList<Table> listTables){
         File[] tblDirs = dbDir.listFiles(File::isDirectory);
         
         if (tblDirs != null) {
@@ -110,8 +111,8 @@ public class DBManager implements Serializable{
         }
     }
     
-    public LinkedList<Table> getAllTables(){
-        LinkedList<Table> listTables = new LinkedList<>();
+    public ElectroList<Table> getAllTables(){
+        ElectroList<Table> listTables = new ElectroList<>();
         addFoundTablesTo(listTables);
         return listTables;
     }

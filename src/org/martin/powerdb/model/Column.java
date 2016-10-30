@@ -20,6 +20,9 @@ public class Column<T> implements Serializable{
     //private boolean isFK;
     private boolean isEditable;
 
+    // Al crear la tabla en la clase Database se debe comprobar que no deben 
+    // haber dos columnas como primary key
+    
     public Column(Class<T> dataClass, String name, boolean isPK, 
             boolean isAutoIncrement) {
         this.dataClass = dataClass;
@@ -48,6 +51,37 @@ public class Column<T> implements Serializable{
 //    private boolean isDataClassNumber(){
 //        
 //    }
+
+    public T castField(String str){
+        if (dataClass.getSimpleName().equals(String.class.getTypeName()))
+            return (T) str;
+        else if (dataClass.getTypeName().equals(Long.class.getSimpleName()))
+            return (T) new Long(str);
+        
+        else if (dataClass.getTypeName().equals(Integer.class.getTypeName()))
+            return (T) new Integer(str);
+        
+        else if (dataClass.getTypeName().equals(Short.class.getTypeName()))
+            return (T) new Short(str);
+        
+        else if (dataClass.getTypeName().equals(Byte.class.getTypeName()))
+            return (T) new Byte(str);
+        
+        else if (dataClass.getTypeName().equals(Float.class.getTypeName()))
+            return (T) new Float(str);
+        
+        else if (dataClass.getTypeName().equals(Double.class.getTypeName()))
+            return (T) new Double(str);
+        
+        else
+            return (T) new Character(str.charAt(0));
+        
+        
+//        else if(/*Para blobs*/true){
+//            
+//        }
+        
+    }
     
     public String getColumnDataType(){
         return dataClass.getName();

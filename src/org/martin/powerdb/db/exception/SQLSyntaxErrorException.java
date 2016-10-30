@@ -3,28 +3,29 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.martin.powerdb.model;
+package org.martin.powerdb.db.exception;
 
 /**
  *
  * @author martin
  */
-public class NullForeignKeyException extends Exception {
+public class SQLSyntaxErrorException extends Exception {
 
     /**
-     * Creates a new instance of <code>NullForeignKeyException</code> without
+     * Creates a new instance of <code>SQLSyntaxErrorException</code> without
      * detail message.
      */
-    public NullForeignKeyException() {
+    public SQLSyntaxErrorException() {
     }
 
     /**
-     * Constructs an instance of <code>NullForeignKeyException</code> with the
+     * Constructs an instance of <code>SQLSyntaxErrorException</code> with the
      * specified detail message.
      *
      * @param msg the detail message.
      */
-    public NullForeignKeyException(String msg) {
+    public SQLSyntaxErrorException(String msg) {
         super(msg);
     }
+    
 }

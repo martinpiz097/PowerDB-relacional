@@ -17,10 +17,22 @@ public class SQLCommand implements Serializable{
 //    public static final SQLCommand select = new SQLCommand("select");
 //    public static final SQLCommand update = new SQLCommand("update");
 //    public static final SQLCommand delete = new SQLCommand("delete");
+
+    public static final String SELECT = "SELECT";
+    public static final String INSERT = "INSERT";
+    public static final String UPDATE = "UPDATE";
+    public static final String DELETE = "DELETE";
+    public static final String SHOW = "SHOW";
+    public static final String DROP = "DROP";
+    public static final String CALL = "CALL";
+    public static final String CREATE = "CREATE";
+    public static final String DESCRIBE = "DESCRIBE";
+    public static final String DESC = "DESC";
     
     private final String order;
     private final PossibleOption[] options;
-
+    
+    
     public SQLCommand(String strCommand) {
         this(strCommand.split(" "));
     }
@@ -65,6 +77,20 @@ public class SQLCommand implements Serializable{
             return true;
     }
 
+    public boolean hasOrder(){
+        return order != null && !order.isEmpty();
+    } 
+    
+    public boolean isValidOrder(){
+        if (!hasOrder()) return false;
+
+        return order.equalsIgnoreCase(INSERT) || order.equalsIgnoreCase(SELECT) || 
+                order.equalsIgnoreCase(UPDATE) || order.equalsIgnoreCase(DELETE) ||
+                order.equalsIgnoreCase(CALL) || order.equalsIgnoreCase(CREATE) || 
+                order.equalsIgnoreCase(DESC) || order.equalsIgnoreCase(DESCRIBE) ||
+                order.equalsIgnoreCase(DROP) || order.equalsIgnoreCase(SHOW); 
+    }
+    
     public int getOptionsCount(){
         return options == null ? 0 : options.length;
     }
